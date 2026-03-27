@@ -4,6 +4,17 @@ const axios = require('axios')
 
 const API_BASE_URL = process.env.API_BASE_URL || 'https://interface.163.focalors.ltd'
 
+// 检查配置状态
+router.get('/config/status', (req, res) => {
+  const status = {
+    apiBaseUrl: !!process.env.API_BASE_URL,
+    neteaseCookie: !!process.env.NETEASE_COOKIE,
+    authKey: !!process.env.AUTH_KEY,
+    playlistId: !!process.env.PLAYLIST_ID
+  }
+  res.json(status)
+})
+
 // 获取包版本
 router.get('/package-version', (req, res) => {
   const packageJson = require('../package.json')

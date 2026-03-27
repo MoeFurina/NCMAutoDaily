@@ -8,7 +8,9 @@ router.get('/', async (req, res) => {
   try {
     const { key } = req.query
 
-    if (key !== process.env.AUTH_KEY) {
+    const authKey = process.env.AUTH_KEY || 'your_default_auth_key'
+
+    if (key !== authKey) {
       return res.status(401).json({ success: false, message: '认证失败：密钥无效' })
     }
 

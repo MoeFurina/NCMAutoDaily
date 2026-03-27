@@ -242,9 +242,25 @@
         alert('复制失败，请手动复制')
       }
     }
-
-    login()
-  </script>
-</body>
-
-</html>
+    
+        // 检查配置状态
+        fetch('/config/status')
+          .then(r => r.json())
+          .then(status => {
+            if (!status.apiBaseUrl) {
+              const container = document.querySelector('.container')
+              const warning = document.createElement('div')
+              warning.className = 'status'
+              warning.style.background = '#fef3c7'
+              warning.style.color = '#92400e'
+              warning.style.marginTop = '20px'
+              warning.textContent = '⚠️ API 基础地址未配置，请在 .env 文件中设置 API_BASE_URL'
+              container.appendChild(warning)
+            }
+          })
+          .catch(() => {})
+    
+        login()
+      </script>
+    </body>
+    </html>

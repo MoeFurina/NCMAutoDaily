@@ -165,6 +165,25 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+      // 检查配置状态
+      fetch('/config/status')
+        .then(r => r.json())
+        .then(status => {
+          if (!status.apiBaseUrl) {
+            const container = document.querySelector('.container')
+            const warning = document.createElement('div')
+            warning.className = 'block'
+            warning.style.background = '#fef3c7'
+            warning.style.borderColor = '#f59e0b'
+            warning.innerHTML = `
+              <h2 style="margin: 0 0 12px; font-size: 18px; color: #92400e;">⚠️ 配置警告</h2>
+              <p style="margin: 0; font-size: 14px; color: #92400e;">API 基础地址未配置，请在 .env 文件中设置 API_BASE_URL</p>
+            `
+            container.insertBefore(warning, container.firstChild)
+          }
+        })
+        .catch(() => {})
+
       fetch('/package-version')
         .then(r => r.json())
         .then(data => {
