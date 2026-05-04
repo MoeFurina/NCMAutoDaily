@@ -27,7 +27,7 @@
       border-radius: 12px;
       padding: 48px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      max-width: 450px;
+      max-width: 480px;
       width: 100%;
       text-align: center;
     }
@@ -42,7 +42,44 @@
     .subtitle {
       font-size: 14px;
       color: #666;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
+    }
+
+    .account-selector {
+      margin-bottom: 20px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .account-btn {
+      padding: 6px 14px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      background: white;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .account-btn:hover {
+      border-color: #C20C0C;
+      color: #C20C0C;
+    }
+
+    .account-btn.active {
+      background: #C20C0C;
+      color: white;
+      border-color: #C20C0C;
+    }
+
+    .account-btn.configured {
+      opacity: 0.5;
+    }
+
+    .account-btn.configured.active {
+      opacity: 1;
     }
 
     .qr-wrapper {
@@ -101,6 +138,23 @@
       margin-bottom: 8px;
     }
 
+    .env-hint {
+      background: #fef3c7;
+      border: 1px solid #f59e0b;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      font-size: 13px;
+      color: #92400e;
+    }
+
+    .env-hint code {
+      background: rgba(0,0,0,0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
     .cookie-display {
       background: #f9f9f9;
       border: 1px solid #ddd;
@@ -111,7 +165,7 @@
       color: #666;
       white-space: pre-wrap;
       word-break: break-all;
-      max-height: 200px;
+      max-height: 120px;
       overflow-y: auto;
       margin-bottom: 12px;
     }
@@ -137,12 +191,31 @@
       background: #999;
       cursor: not-allowed;
     }
+
+    .refresh-btn {
+      margin-top: 12px;
+      padding: 8px 16px;
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      color: #666;
+    }
+
+    .refresh-btn:hover {
+      border-color: #C20C0C;
+      color: #C20C0C;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>获取 Cookie</h1>
-    <p class="subtitle">使用网易云音乐App扫描二维码登录获取 Cookie</p>
+    <p class="subtitle">选择要配置的账号，扫码登录后获取 Cookie</p>
+
+    <!-- 账号选择 -->
+    <div id="accountSelector" class="account-selector"></div>
 
     <div class="qr-wrapper">
       <img id="qrImg" src="" alt="二维码加载中..." />
@@ -151,17 +224,56 @@
     <div id="status" class="status waiting">等待扫描...</div>
 
     <div id="cookieBox" class="cookie-box" style="display: none;">
-      <label>您的 Cookie（请复制到 .env 文件）：</label>
+      <div id="envHint" class="env-hint"></div>
+      <label>Cookie 值：</label>
       <div id="cookieDisplay" class="cookie-display"></div>
       <button id="copyBtn" class="btn" onclick="copyCookie()">复制 Cookie</button>
     </div>
 
     <p class="hint">请打开网易云音乐App，扫描上方二维码完成登录</p>
+    <button class="refresh-btn" onclick="location.reload()">刷新二维码</button>
   </div>
 
   <script src="https://fastly.jsdelivr.net/npm/axios@0.26.1/dist/axios.min.js"></script>
   <script>
     let timer
+    let selectedAccount = 1 // 默认选择账号1
+
+    // 加载已配置的账号列表
+    async function loadConfig() {
+      try {
+        const res = await axios.get('/config/status')
+        const config = res.data
+        const selector = document.getElementById('accountSelector')
+
+        // 显示 1~5 号账号按钮，标记已配置的
+        let html = ''
+        for (let i = 1; i <= 5; i++) {
+          const configured = config.accounts.some(a => a.index === i && a.cookieConfigured)
+          const isNext = !configured && config.accounts.filter(a => a.cookieConfigured).length + 1 === i
+          if (isNext) selectedAccount = i
+
+          html += `<button class="account-btn ${configured ? 'configured' : ''} ${i === selectedAccount ? 'active' : ''}" 
+                        onclick="selectAccount(${i})" data-idx="${i}">
+                    #${i}${configured ? ' ✓' : ''}
+                  </button>`
+        }
+        selector.innerHTML = html
+      } catch (e) {
+        // 如果获取不到配置，默认选1
+      }
+    }
+
+    function selectAccount(idx) {
+      selectedAccount = idx
+      document.querySelectorAll('.account-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.idx) === idx)
+      })
+      // 清除当前登录状态，重新开始
+      if (timer) clearInterval(timer)
+      document.getElementById('cookieBox').style.display = 'none'
+      login()
+    }
 
     async function login() {
       const statusDiv = document.getElementById('status')
@@ -184,7 +296,7 @@
         timer = setInterval(async () => {
           const statusRes = await checkStatus(key)
           if (statusRes.code === 800) {
-            updateStatus('二维码已过期，请刷新页面', 'error')
+            updateStatus('二维码已过期，请点击刷新', 'error')
             clearInterval(timer)
           } else if (statusRes.code === 801) {
             updateStatus('二维码已扫描，请在手机上确认', 'waiting')
@@ -199,7 +311,7 @@
         }, 3000)
       } catch (error) {
         console.error('登录失败:', error)
-        updateStatus('二维码加载失败，请刷新页面重试', 'error')
+        updateStatus('二维码加载失败，请点击刷新重试', 'error')
       }
     }
 
@@ -219,18 +331,29 @@
     function showCookie(cookie) {
       const cookieBox = document.getElementById('cookieBox')
       const cookieDisplay = document.getElementById('cookieDisplay')
+      const envHint = document.getElementById('envHint')
       cookieBox.style.display = 'block'
-      
-      // 提取 MUSIC_U 的值（不包含尾部的 ;）
+
+      const envName = `NETEASE_COOKIE_${selectedAccount}`
+      const playlistName = `PLAYLIST_ID_${selectedAccount}`
+
+      // 提取 MUSIC_U 的值
       const match = cookie.match(/MUSIC_U=([^;]+)/)
       const musicUValue = match ? match[1] : cookie
-      cookieDisplay.textContent = `MUSIC_U=${musicUValue};`
+      const formattedCookie = `MUSIC_U=${musicUValue};`
+      cookieDisplay.textContent = formattedCookie
+
+      envHint.innerHTML = `
+        请将以下变量添加到 <code>.env</code> 文件：<br>
+        <strong><code>${envName}=${formattedCookie}</code></strong><br>
+        <span style="font-size:12px;">听歌打卡歌单（可选）：<code>${playlistName}=你的歌单ID</code></span>
+      `
     }
 
     async function copyCookie() {
       const cookieDisplay = document.getElementById('cookieDisplay')
       const cookie = cookieDisplay.textContent
-      
+
       try {
         await navigator.clipboard.writeText(cookie)
         const copyBtn = document.getElementById('copyBtn')
@@ -242,25 +365,26 @@
         alert('复制失败，请手动复制')
       }
     }
-    
-        // 检查配置状态
-        fetch('/config/status')
-          .then(r => r.json())
-          .then(status => {
-            if (!status.apiBaseUrl) {
-              const container = document.querySelector('.container')
-              const warning = document.createElement('div')
-              warning.className = 'status'
-              warning.style.background = '#fef3c7'
-              warning.style.color = '#92400e'
-              warning.style.marginTop = '20px'
-              warning.textContent = '⚠️ API 基础地址未配置，请在 .env 文件中设置 API_BASE_URL'
-              container.appendChild(warning)
-            }
-          })
-          .catch(() => {})
-    
-        login()
-      </script>
-    </body>
-    </html>
+
+    // 检查配置状态警告
+    fetch('/config/status')
+      .then(r => r.json())
+      .then(status => {
+        if (!status.apiBaseUrl) {
+          const container = document.querySelector('.container')
+          const warning = document.createElement('div')
+          warning.className = 'status'
+          warning.style.background = '#fef3c7'
+          warning.style.color = '#92400e'
+          warning.style.marginTop = '20px'
+          warning.textContent = '⚠️ API 基础地址未配置，请在 .env 文件中设置 API_BASE_URL'
+          container.appendChild(warning)
+        }
+      })
+      .catch(() => {})
+
+    // 初始化
+    loadConfig().then(() => login())
+  </script>
+</body>
+</html>

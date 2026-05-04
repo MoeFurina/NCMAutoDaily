@@ -13,6 +13,9 @@
       --bg: #f5f5f5;
       --panel: #ffffff;
       --accent: #C20C0C;
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; }
@@ -30,8 +33,6 @@
     .block { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); }
     .block h2 { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
     .kvs { display: grid; grid-template-columns: 120px 1fr; gap: 8px 12px; align-items: start; }
-    .kvs div:first-child { color: var(--muted); flex-shrink: 0; }
-    .kvs div:last-child { word-break: break-all; overflow-wrap: anywhere; min-width: 0; overflow: hidden; }
     @media (max-width: 480px) {
       .kvs { grid-template-columns: 1fr; gap: 4px 12px; }
       .kvs div:first-child { font-weight: 500; }
@@ -42,18 +43,43 @@
     ul.links a:hover { color: var(--accent); border-bottom-color: var(--accent); }
     pre { margin: 0; background: #f9f9f9; border: 1px solid var(--border); border-radius: 6px; padding: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
     code { font-family: 'Courier New', monospace; font-size: 13px; }
-    @media (max-width: 480px) {
-      code { font-size: 12px; }
-    }
+    @media (max-width: 480px) { code { font-size: 12px; } }
     .status { padding: 8px 12px; border-radius: 6px; font-size: 14px; font-weight: 500; margin-bottom: 12px; }
     .status.success { background: #d1fae5; color: #065f46; }
     .status.error { background: #fee2e2; color: #991b1b; }
     .status.warning { background: #fef3c7; color: #92400e; }
     .btn { display: inline-block; padding: 8px 16px; background: var(--accent); color: white; text-decoration: none; border-radius: 6px; font-size: 14px; font-weight: 500; border: none; cursor: pointer; transition: background 0.2s ease; }
     .btn:hover { background: #a00909; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     footer.site-footer { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--border); color: var(--muted); text-align: center; }
     footer.site-footer a { color: var(--fg); text-decoration: none; transition: color 0.2s ease; }
     footer.site-footer a:hover { color: var(--accent); }
+
+    /* 多账号卡片 */
+    .accounts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .account-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+    .account-card .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .account-card .card-name { font-weight: 600; font-size: 15px; }
+    .account-card .card-index { font-size: 12px; color: var(--muted); background: var(--bg); padding: 2px 8px; border-radius: 8px; }
+    .account-card .card-info { font-size: 13px; color: var(--muted); }
+    .account-card .card-info div { margin: 4px 0; }
+    .account-card .card-config { font-size: 12px; margin-top: 8px; }
+    .config-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+    .config-dot.ok { background: var(--success); }
+    .config-dot.missing { background: var(--error); }
+
+    /* 签到结果区域 */
+    .sign-summary { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .summary-item { flex: 1; min-width: 100px; text-align: center; padding: 10px; border-radius: 8px; background: var(--bg); }
+    .summary-item .num { font-size: 24px; font-weight: 700; }
+    .summary-item .label { font-size: 12px; color: var(--muted); }
+    .account-result { border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .account-result h4 { margin: 0 0 8px; font-size: 14px; }
+    .task-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .task-tag { display: inline-block; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+    .task-tag.success { background: #d1fae5; color: #065f46; }
+    .task-tag.error { background: #fee2e2; color: #991b1b; }
+    .task-tag.skipped { background: #fef3c7; color: #92400e; }
   </style>
 </head>
 <body>
@@ -64,15 +90,15 @@
     </header>
 
     <section class="block">
-      <h2>账号状态</h2>
-      <div id="account-status">
+      <h2>账号配置</h2>
+      <div id="accounts-list" class="accounts-grid">
         <div class="status warning">加载中...</div>
       </div>
     </section>
 
     <section class="block">
       <h2>一键签到</h2>
-      <p style="margin-bottom: 12px;">点击下方按钮完成所有签到任务（每日签到、黑胶乐签、云贝签到、听歌打卡）</p>
+      <p style="margin-bottom: 12px;">点击下方按钮为所有已配置账号完成签到（每日签到、黑胶乐签、云贝签到、听歌打卡）</p>
       <button id="signBtn" class="btn" onclick="handleSign()">立即签到</button>
       <div id="sign-result" style="margin-top: 16px;"></div>
     </section>
@@ -91,107 +117,158 @@
 
   <script src="https://fastly.jsdelivr.net/npm/axios@0.26.1/dist/axios.min.js"></script>
   <script>
-    async function checkAccount() {
-      const statusDiv = document.getElementById('account-status')
+    // 加载账号配置列表
+    async function loadAccounts() {
+      const container = document.getElementById('accounts-list')
       try {
-        const res = await axios({
-          url: '/user/account',
-          method: 'post'
-        })
-        const data = res.data
-        if (data.code === 200 && data.profile) {
-          statusDiv.innerHTML = `
-            <div class="status success">✓ 已登录</div>
-            <div class="kvs">
-              <div>用户昵称</div><div>${data.profile.nickname}</div>
-              <div>用户ID</div><div>${data.profile.userId}</div>
-              <div>签名</div><div>${data.profile.signature || '无'}</div>
+        const res = await axios.get('/config/status')
+        const config = res.data
+
+        if (config.totalAccounts === 0) {
+          container.innerHTML = '<div class="status error">✗ 未配置任何账号，请在环境变量中添加 NETEASE_COOKIE_1</div>'
+          return
+        }
+
+        let html = ''
+        config.accounts.forEach(acc => {
+          html += `
+            <div class="account-card">
+              <div class="card-header">
+                <span class="card-name">账号 ${acc.index}</span>
+                <span class="card-index">#${acc.index}</span>
+              </div>
+              <div class="card-config">
+                <div><span class="config-dot ${acc.cookieConfigured ? 'ok' : 'missing'}"></span>Cookie: ${acc.cookieConfigured ? '已配置' : '未配置'}</div>
+                <div><span class="config-dot ${acc.playlistConfigured ? 'ok' : 'missing'}"></span>歌单ID: ${acc.playlistConfigured ? '已配置' : '未配置（跳过听歌打卡）'}</div>
+              </div>
             </div>
           `
-        } else {
-          statusDiv.innerHTML = `
-            <div class="status error">✗ 未登录或 Cookie 已过期</div>
-            <p style="margin-top: 12px;">请前往 <a href="/login" target="_blank">获取 Cookie</a> 并更新环境变量。</p>
-          `
+        })
+        html += `
+          <div class="account-card" style="display:flex;align-items:center;justify-content:center;min-height:100px;">
+            <div style="text-align:center;color:var(--muted);">
+              <div style="font-size:13px;">共 <strong style="color:var(--accent);">${config.totalAccounts}</strong> 个账号</div>
+            </div>
+          </div>
+        `
+        container.innerHTML = html
+
+        // 并行获取所有账号昵称
+        const infoRes = await axios.post('/user/account')
+        const accountsInfo = infoRes.data
+        if (Array.isArray(accountsInfo)) {
+          accountsInfo.forEach(info => {
+            if (info.profile?.nickname && info.accountIndex) {
+              const nameEl = document.querySelector(`.account-card .card-index[data-idx="${info.accountIndex}"]`)
+              // 更新账号名称
+              const cards = container.querySelectorAll('.account-card')
+              cards.forEach(card => {
+                const idx = card.querySelector('.card-index')?.textContent?.replace('#', '')
+                if (idx == info.accountIndex) {
+                  card.querySelector('.card-name').textContent = info.profile.nickname
+                }
+              })
+            }
+          })
         }
       } catch (error) {
-        console.error('检查账号状态失败:', error)
-        statusDiv.innerHTML = `
-          <div class="status error">✗ 检查账号状态失败</div>
-          <p style="margin-top: 12px;">错误信息: ${error.response?.data?.message || error.message}</p>
-        `
+        container.innerHTML = `<div class="status error">✗ 加载失败: ${error.message}</div>`
       }
     }
 
+    // 签到
     async function handleSign() {
       const signBtn = document.getElementById('signBtn')
       const resultDiv = document.getElementById('sign-result')
-      
+
       signBtn.disabled = true
       signBtn.textContent = '签到中...'
-      resultDiv.innerHTML = '<div class="status warning">正在签到，请稍候...</div>'
+      resultDiv.innerHTML = '<div class="status warning">正在为所有账号签到，请稍候...</div>'
 
       try {
-        const res = await axios({
-          url: '/api/sign',
-          method: 'get',
-          params: {
-            key: prompt('请输入签到密钥（AUTH_KEY）：')
-          }
-        })
-        
+        const authKey = prompt('请输入签到密钥（AUTH_KEY）：')
+        if (!authKey) {
+          signBtn.disabled = false
+          signBtn.textContent = '立即签到'
+          return
+        }
+
+        const res = await axios.get('/api/sign', { params: { key: authKey } })
         const data = res.data
+
         if (data.success) {
-          resultDiv.innerHTML = `
-            <div class="status success">✓ ${data.message}</div>
-            <pre><code>${JSON.stringify(data.results, null, 2)}</code></pre>
-          `
+          let html = `<div class="status success">✓ ${data.message}</div>`
+
+          // 汇总
+          const results = data.results
+          const accountNames = Object.keys(results)
+          let successTasks = 0, failTasks = 0
+
+          html += '<div style="margin-top:16px;">'
+          accountNames.forEach(name => {
+            const r = results[name]
+            if (r.error) {
+              html += `
+                <div class="account-result" style="border-color:var(--error);">
+                  <h4 style="color:var(--error);">✗ ${name}</h4>
+                  <div style="font-size:13px;color:var(--muted);">${r.error}</div>
+                </div>
+              `
+              failTasks++
+              return
+            }
+
+            const tasks = []
+            if (r.daily_signin) tasks.push({ name: '每日签到', data: r.daily_signin })
+            if (r.vip_sign) tasks.push({ name: '黑胶乐签', data: r.vip_sign })
+            if (r.yunbei_sign) tasks.push({ name: '云贝签到', data: r.yunbei_sign })
+            if (r.scrobble) tasks.push({ name: '听歌打卡', data: r.scrobble })
+
+            let tagsHtml = ''
+            tasks.forEach(t => {
+              let cls = 'success'
+              let label = '✓'
+              if (t.data.error) { cls = 'error'; label = '✗'; failTasks++ }
+              else if (t.data.skipped) { cls = 'skipped'; label = '—'; }
+              else { successTasks++ }
+
+              const extra = t.data.code !== undefined ? ` (${t.data.code})` : ''
+              const count = t.data.count ? ` (${t.data.count}首)` : ''
+              tagsHtml += `<span class="task-tag ${cls}">${label} ${t.name}${count}${extra}</span>`
+            })
+
+            html += `
+              <div class="account-result">
+                <h4>${name}</h4>
+                <div class="task-list">${tagsHtml}</div>
+              </div>
+            `
+          })
+          html += '</div>'
+          resultDiv.innerHTML = html
         } else {
-          resultDiv.innerHTML = `
-            <div class="status error">✗ ${data.message}</div>
-          `
+          resultDiv.innerHTML = `<div class="status error">✗ ${data.message}</div>`
         }
       } catch (error) {
-        console.error('签到失败:', error)
         const errorMsg = error.response?.data?.message || error.message || '签到失败，请重试'
-        resultDiv.innerHTML = `
-          <div class="status error">✗ 签到失败</div>
-          <p style="margin-top: 8px;">错误信息: ${errorMsg}</p>
-        `
+        resultDiv.innerHTML = `<div class="status error">✗ 签到失败</div><p style="margin-top:8px;font-size:13px;color:var(--muted);">${errorMsg}</p>`
       } finally {
         signBtn.disabled = false
         signBtn.textContent = '立即签到'
       }
     }
 
+    // 初始化
     document.addEventListener('DOMContentLoaded', function () {
-      // 检查配置状态
-      fetch('/config/status')
-        .then(r => r.json())
-        .then(status => {
-          if (!status.apiBaseUrl) {
-            const container = document.querySelector('.container')
-            const warning = document.createElement('div')
-            warning.className = 'block'
-            warning.style.background = '#fef3c7'
-            warning.style.borderColor = '#f59e0b'
-            warning.innerHTML = `
-              <h2 style="margin: 0 0 12px; font-size: 18px; color: #92400e;">⚠️ 配置警告</h2>
-              <p style="margin: 0; font-size: 14px; color: #92400e;">API 基础地址未配置，请在 .env 文件中设置 API_BASE_URL</p>
-            `
-            container.insertBefore(warning, container.firstChild)
-          }
-        })
-        .catch(() => {})
-
+      // 版本
       fetch('/package-version')
         .then(r => r.json())
         .then(data => {
           if (data.version) document.getElementById('api-version').textContent = 'v' + data.version
         })
         .catch(() => {})
-      
-      checkAccount()
+
+      loadAccounts()
     })
   </script>
 </body>

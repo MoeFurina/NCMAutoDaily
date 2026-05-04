@@ -1,6 +1,6 @@
 {
   "name": "NCMAutoDaily",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "网易云音乐自动打卡项目 - 自动完成每日签到、黑胶乐签、云贝签到和听歌打卡",
   "main": "index.js",
   "scripts": {
